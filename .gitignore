@@ -1,0 +1,7 @@
+bin/
+third_party/
+.testmodels/
+models/
+*.gguf
+*.exe
+*.test

@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>locallm</title>
+<style>
+:root{
+  --bg0:#0c0c0c; --bg1:#171717; --bg2:#1c1c1c; --bg3:#222; --bg4:#2a2a2a;
+  --line:#2b2b2b; --line2:#363636; --tx:#e8e8e8; --tx2:#a6a6a6; --tx3:#7a7a7a;
+  --blue:#1d74ad; --blue2:#2a8fd0; --green:#34c759; --red:#ff5f57; --amber:#f5a623;
+  --font:-apple-system,"Segoe UI",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg0);color:var(--tx);font:14px/1.45 var(--font);overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#333;border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#444;background-clip:padding-box;border:2px solid transparent}
+
+#app{position:fixed;inset:20px;display:grid;grid-template-columns:264px 1fr 0;background:var(--bg1);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 30px 80px #000a}
+@media (max-width:900px){#app{inset:0;border-radius:0}}
+#app.rp-open{grid-template-columns:264px 1fr 380px}
+#app.chat-wide{grid-template-columns:264px 1fr 0}
+#sb{background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.traffic{display:flex;gap:8px;padding:16px 16px 6px;align-items:center}
+.traffic i{width:12px;height:12px;border-radius:50%;display:block}
+.sb-nav{padding:6px 10px;display:flex;flex-direction:column;gap:1px}
+.nav{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;color:var(--tx);text-align:left;width:100%}
+.nav:hover{background:var(--bg3)}
+.nav .k{margin-left:auto;color:var(--tx3);font-size:12px}
+.sb-scroll{flex:1;overflow:auto;padding:8px 10px 10px}
+.sec{display:flex;align-items:center;justify-content:space-between;color:var(--tx3);font-size:12.5px;padding:12px 10px 6px}
+.sec button{color:var(--tx3);width:26px;height:26px;border-radius:7px;display:grid;place-items:center}
+.sec button:hover{background:var(--bg3);color:var(--tx)}
+.grp{display:flex;align-items:center;gap:9px;color:var(--tx2);padding:7px 10px;margin-top:4px;border-radius:9px;font-weight:600;font-size:13px}
+.grp span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item{display:flex;align-items:center;gap:10px;padding:6px 10px 6px 12px;border-radius:9px;color:#cfcfcf;cursor:pointer;margin-left:8px}
+.item:hover{background:var(--bg3)}
+.item.act{background:#2b2b2b;color:#fff}
+.item .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .m{color:var(--tx3);font-size:12px;flex:none}
+.item .dot{width:7px;height:7px;border-radius:50%;background:var(--blue2);flex:none}
+.item .x{display:none;color:var(--tx3);width:22px;height:22px;border-radius:6px;place-items:center}
+.item:hover .x{display:grid}.item:hover .m{display:none}.item .x:hover{background:#3a3a3a;color:var(--red)}
+.bk{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;cursor:pointer;color:#cfcfcf}
+.bk:hover{background:var(--bg3)}.bk.act{background:#2b2b2b;color:#fff}
+.bk .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk .s{font-size:11.5px;color:var(--tx3);flex:none}
+.bk .x{display:none;color:var(--tx3);width:22px;height:22px;border-radius:6px;place-items:center}
+.bk:hover .x{display:grid}.bk:hover .s{display:none}.bk .x:hover{background:#3a3a3a;color:var(--red)}
+.bar{height:3px;background:#2e2e2e;border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--blue2);transition:width .3s}
+.sb-foot{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#3a8ee6,#7b5cff);display:grid;place-items:center;font-weight:700;font-size:13px}
+.sb-foot .n{font-weight:600;line-height:1.2}.sb-foot .s{font-size:11.5px;color:var(--green);display:flex;align-items:center;gap:5px}
+.sb-foot .s b{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
+.ibtn{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--tx2)}
+.ibtn:hover{background:var(--bg3);color:var(--tx)}.ibtn.on{background:#2d2d2d;color:#fff}
+
+#main{display:flex;flex-direction:column;min-width:0;background:var(--bg1);position:relative}
+#top{height:50px;display:flex;align-items:center;gap:10px;padding:0 12px 0 16px;border-bottom:1px solid var(--line);flex:none}
+#top .title{font-weight:600;max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:7px;padding:4px 6px;outline:0}
+#top .title:focus{outline:1px solid var(--blue2);text-overflow:clip}
+.pill{display:inline-flex;align-items:center;gap:7px;background:#242424;border:1px solid var(--line2);border-radius:10px;padding:5px 11px;color:#d8d8d8;font-size:13px;max-width:240px}
+.pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill:hover{background:#2c2c2c}
+.sp{flex:1}
+#stage{flex:1;position:relative;overflow:hidden}
+#canvas{position:absolute;inset:0;overflow:hidden;background-image:radial-gradient(#2f2f2f 1px,transparent 1.3px);background-size:24px 24px;cursor:grab;touch-action:none}
+#canvas.pan{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#links{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+#links path{fill:none;stroke:#5b6572;stroke-width:2;pointer-events:none}
+#links path.hit{stroke:transparent;stroke-width:14;cursor:pointer;pointer-events:stroke}
+#links path.sel{stroke:#2a8fd0}
+#links marker path{fill:#5b6572;stroke:none}
+.card{position:absolute;background:#1f1f1f;border:1px solid var(--line2);border-radius:14px;box-shadow:0 6px 24px #0007;display:flex;flex-direction:column;min-width:180px;min-height:90px}
+.card.sel{border-color:var(--blue2);box-shadow:0 0 0 2px #2a8fd055,0 6px 24px #0007}
+.card .hd{display:flex;align-items:center;gap:8px;padding:9px 10px 6px 12px;cursor:grab;color:var(--tx2);user-select:none}
+.card .hd .ic{flex:none;display:grid;place-items:center}
+.card .hd input{flex:1;min-width:0;background:none;border:0;outline:0;font-weight:600;color:var(--tx);padding:2px 4px;border-radius:6px}
+.card .hd input:focus{background:#2a2a2a}
+.card .hd .x{width:22px;height:22px;border-radius:6px;display:none;place-items:center;color:var(--tx3)}
+.card:hover .hd .x{display:grid}.card .hd .x:hover{background:#3a3a3a;color:var(--red)}
+.card .bd{flex:1;padding:0 12px 10px;overflow:auto;min-height:0}
+.card textarea{width:100%;height:100%;resize:none;background:none;border:0;outline:0;color:#d6d6d6;line-height:1.5;padding:0}
+.card .rs{position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;opacity:0}
+.card:hover .rs{opacity:.7}
+.card .rs::after{content:"";position:absolute;right:3px;bottom:3px;width:8px;height:8px;border-right:2px solid #666;border-bottom:2px solid #666}
+.card .hdl{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--blue2);border:2px solid #1f1f1f;opacity:0;cursor:crosshair;transition:opacity .12s}
+.card:hover .hdl,.linking .card .hdl{opacity:1}
+.hdl.t{left:calc(50% - 6px);top:-7px}.hdl.b{left:calc(50% - 6px);bottom:-7px}.hdl.l{top:calc(50% - 6px);left:-7px}.hdl.r{top:calc(50% - 6px);right:-7px}
+.card.book{border-color:#2f4a63;background:#1a232d}
+.card.answer{border-color:#2d4a36;background:#1a2520}
+.card.quote{border-color:#4a4330;background:#25221a}
+.card.summary{border-color:#43355a;background:#211c2a}
+.card .meta{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px}
+.chip{display:inline-flex;align-items:center;gap:5px;background:#2a2a2a;border:1px solid var(--line2);border-radius:8px;padding:2px 8px;font-size:12px;color:#cfcfcf}
+.chip.src{cursor:pointer}.chip.src:hover{background:#333;border-color:#4a4a4a}
+.zoom{position:absolute;left:14px;bottom:14px;display:flex;align-items:center;background:#202020;border:1px solid var(--line2);border-radius:11px;overflow:hidden}
+.zoom button{width:32px;height:30px;display:grid;place-items:center;color:var(--tx2)}.zoom button:hover{background:#2c2c2c;color:#fff}
+.zoom span{min-width:48px;text-align:center;font-size:12px;color:var(--tx2)}
+.hint{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center;color:var(--tx3);pointer-events:none;max-width:440px;line-height:1.7}
+.hint h2{margin:0 0 8px;color:var(--tx2);font-weight:600}
+.drop{position:absolute;inset:10px;border:2px dashed var(--blue2);border-radius:16px;background:#1d74ad22;display:none;place-items:center;font-size:18px;color:#cfe8f8;z-index:50;pointer-events:none}
+.drop.on{display:grid}
+#chatwide{flex:1;display:none;flex-direction:column;min-height:0}
+#app.chat-wide #chatwide{display:flex}
+
+#rp{background:var(--bg1);border-left:1px solid var(--line);display:none;flex-direction:column;min-width:0;overflow:hidden}
+#app.rp-open #rp{display:flex}
+.tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line)}
+.tab{padding:8px 12px;color:var(--tx3);border-bottom:2px solid transparent;font-weight:500}
+.tab:hover{color:var(--tx)}.tab.act{color:var(--tx);border-color:var(--blue2)}
+.pane{flex:1;display:flex;flex-direction:column;min-height:0}
+.msgs{flex:1;overflow:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:14px}
+#app.chat-wide .msgs{padding:24px max(24px,calc(50% - 400px))}
+.msg.u .bub{background:#262626;border:1px solid var(--line2);border-radius:14px;padding:9px 13px;white-space:pre-wrap}
+.msg.u{align-self:flex-end;max-width:90%}
+.msg.a .bub{white-space:pre-wrap;line-height:1.55}
+.msg .bub sup{color:var(--blue2);font-weight:600}
+.msg .src{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.msg .acts{display:flex;gap:4px;margin-top:6px}
+.msg .acts button{display:flex;align-items:center;gap:6px;color:var(--tx3);padding:4px 8px;border-radius:8px;font-size:12.5px}
+.msg .acts button:hover{background:#2a2a2a;color:var(--tx)}
+.typing{color:var(--tx3);display:flex;align-items:center;gap:6px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--tx3);animation:bl 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bl{0%,100%{opacity:.25}50%{opacity:1}}
+.empty{margin:auto;text-align:center;color:var(--tx3);padding:20px;max-width:340px}
+.empty h3{color:var(--tx2);margin:0 0 6px}
+.sugg{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.sugg button{text-align:left;padding:8px 11px;border:1px solid var(--line2);border-radius:10px;color:var(--tx2)}.sugg button:hover{background:#242424;color:var(--tx)}
+.composer{margin:8px 12px 12px;border:1px solid var(--line2);background:#1d1d1d;border-radius:16px;padding:10px 12px 8px}
+#app.chat-wide .composer{width:min(800px,calc(100% - 48px));margin:8px auto 18px}
+.composer:focus-within{border-color:#3d5568}
+.composer textarea{width:100%;background:none;border:0;outline:0;resize:none;max-height:160px;min-height:44px;line-height:1.45}
+.composer textarea::placeholder{color:var(--tx3)}
+.crow{display:flex;align-items:center;gap:6px;margin-top:4px}
+.crow .btn{display:flex;align-items:center;gap:6px;color:var(--tx2);padding:5px 8px;border-radius:9px;font-size:13px}
+.crow .btn:hover{background:#2a2a2a;color:var(--tx)}
+.send{width:32px;height:32px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff}.send:hover{background:var(--blue2)}
+.send.stop{background:#555}
+.menu{position:fixed;background:#232323;border:1px solid var(--line2);border-radius:12px;padding:5px;box-shadow:0 14px 40px #000b;z-index:80;min-width:230px;max-width:340px}
+.menu button{display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;padding:8px 10px;border-radius:8px}
+.menu button:hover{background:#2f2f2f}.menu small{display:block;color:var(--tx3)}
+.scroll{overflow:auto;flex:1;padding:14px}
+.box{border:1px solid var(--line2);background:#1c1c1c;border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.box h4{margin:0 0 8px;font-size:13px;color:var(--tx2);font-weight:600}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 0}
+.row .k{color:var(--tx3)}.row .v{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn2{display:inline-flex;align-items:center;gap:7px;background:#262626;border:1px solid var(--line2);border-radius:9px;padding:6px 11px;color:#ddd}
+.btn2:hover{background:#2f2f2f}.btn2.pri{background:var(--blue);border-color:var(--blue)}.btn2.pri:hover{background:var(--blue2)}
+.step{display:flex;gap:10px;align-items:flex-start;padding:5px 0}
+.step .c{width:18px;height:18px;border-radius:50%;border:1.5px solid #555;flex:none;display:grid;place-items:center;margin-top:1px}
+.step.ok .c{border-color:var(--green);color:var(--green)}.step.ok .tt{color:var(--tx3);text-decoration:line-through}
+.step.run .c{border-color:var(--blue2);border-top-color:transparent;animation:sp .9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toc .e{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:8px}
+.toc .e:hover{background:#242424}.toc .e .tt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toc .e .pg{color:var(--tx3);font-size:12px;flex:none}
+.toc .e button{opacity:0;color:var(--tx2);padding:2px 7px;border-radius:7px;font-size:12px;border:1px solid var(--line2)}
+.toc .e:hover button{opacity:1}.toc .e button:hover{background:#2f2f2f}
+.ov{position:fixed;inset:0;background:#000a;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;z-index:90}
+.ov.on{display:flex}
+.modal{width:min(680px,92vw);max-height:70vh;background:#1e1e1e;border:1px solid var(--line2);border-radius:16px;display:flex;flex-direction:column;box-shadow:0 30px 90px #000}
+.modal input{background:none;border:0;border-bottom:1px solid var(--line);outline:0;padding:15px 18px;font-size:16px}
+.res{overflow:auto;padding:8px}
+.res .r{padding:9px 11px;border-radius:10px;cursor:pointer}.res .r:hover{background:#2a2a2a}
+.res .r .h{color:var(--tx3);font-size:12px;margin-bottom:2px}
+.res .r .tx{color:#d0d0d0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#toasts{position:fixed;right:24px;bottom:24px;display:flex;flex-direction:column;gap:8px;z-index:120}
+.toast{background:#262626;border:1px solid var(--line2);border-left:3px solid var(--blue2);padding:10px 14px;border-radius:10px;max-width:380px;box-shadow:0 10px 30px #000a}
+.toast.err{border-left-color:var(--red)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="open" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5 12 11l2.5 2.5"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/></symbol>
+<symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="book" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></symbol>
+<symbol id="note" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></symbol>
+<symbol id="chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+<symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+<symbol id="send" viewBox="0 0 24 24"><path d="M12 19V6M6.5 11.5 12 6l5.5 5.5"/></symbol>
+<symbol id="stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></symbol>
+<symbol id="check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+<symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+<symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+<symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+<symbol id="pin" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="2"/><path d="M17 9v8M13 13h8"/></symbol>
+<symbol id="sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18 16l.8 2.2L21 19l-2.2.8L18 22l-.8-2.2L15 19l2.2-.8z"/></symbol>
+<symbol id="panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 4v16"/></symbol>
+<symbol id="wide" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+<symbol id="minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="fit" viewBox="0 0 24 24"><path d="M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3"/></symbol>
+<symbol id="zap" viewBox="0 0 24 24"><path d="M13 3 5 13h6l-1 8 8-10h-6z"/></symbol>
+<symbol id="quote" viewBox="0 0 24 24"><path d="M6 17c0-4 1-7 4-9M14 17c0-4 1-7 4-9"/></symbol>
+</defs></svg>
+
+<div id="app">
+  <aside id="sb">
+    <div class="traffic"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+    <div class="sb-nav">
+      <button class="nav" id="nNew"><svg class="i"><use href="#plus"/></svg>Новая доска<span class="k">Ctrl N</span></button>
+      <button class="nav" id="nOpen"><svg class="i"><use href="#open"/></svg>Открыть книгу</button>
+      <button class="nav" id="nSearch"><svg class="i"><use href="#search"/></svg>Поиск по книге<span class="k">Ctrl K</span></button>
+    </div>
+    <div class="sb-scroll" id="sbList"></div>
+    <div class="sb-foot">
+      <div class="avatar">L</div>
+      <div style="flex:1;min-width:0"><div class="n">locallm</div><div class="s"><b></b><span>локально, без сети</span></div></div>
+      <button class="ibtn" id="bInfo" title="О программе"><svg class="i"><use href="#info"/></svg></button>
+    </div>
+  </aside>
+
+  <section id="main">
+    <div id="top">
+      <div class="title" id="boardTitle" contenteditable="true" spellcheck="false"></div>
+      <button class="pill" id="bookPill"><svg class="i"><use href="#folder"/></svg><span id="bookPillT">Без книги</span></button>
+      <div class="sp"></div>
+      <button class="ibtn" id="bAddNote" title="Новая заметка (двойной клик по доске)"><svg class="i"><use href="#note"/></svg></button>
+      <button class="ibtn" id="bWide" title="Чат на всю ширину"><svg class="i"><use href="#wide"/></svg></button>
+      <button class="ibtn on" id="bPanel" title="Панель справа"><svg class="i"><use href="#panel"/></svg></button>
+    </div>
+    <div id="stage">
+      <div id="canvas">
+        <div id="world">
+          <svg id="links"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 10 5 0 9z"/></marker></defs><g id="linkg"></g></svg>
+          <div id="cards"></div>
+        </div>
+        <div class="hint" id="hint"><h2>Пустая доска</h2>Перетащите сюда файл книги (PDF, DOCX, ODT, EPUB, FB2, TXT…),<br>дважды щёлкните по доске, чтобы создать заметку,<br>или задайте вопрос в чате справа.</div>
+      </div>
+      <div class="zoom"><button id="zOut"><svg class="i"><use href="#minus"/></svg></button><span id="zv">100%</span><button id="zIn"><svg class="i"><use href="#plus"/></svg></button><button id="zFit" title="Показать всё"><svg class="i"><use href="#fit"/></svg></button></div>
+      <div class="drop" id="drop">Отпустите файл, чтобы загрузить книгу</div>
+    </div>
+    <div id="chatwide"></div>
+  </section>
+
+  <aside id="rp">
+    <div class="tabs">
+      <button class="tab act" data-tab="chat">Чат</button>
+      <button class="tab" data-tab="toc">Оглавление</button>
+      <button class="tab" data-tab="book">Книга</button>
+    </div>
+    <div class="pane" id="pane"></div>
+  </aside>
+</div>
+
+<input type="file" id="file" hidden multiple accept=".pdf,.docx,.odt,.epub,.fb2,.zip,.txt,.md,.markdown,.html,.htm,.rtf">
+<div class="ov" id="ovSearch"><div class="modal"><input id="qs" placeholder="Поиск по тексту книги…  (Esc — закрыть)"><div class="res" id="qr"></div></div></div>
+<div id="toasts"></div>
+
+<script>
+"use strict";
+const TOKEN = "__LOCALLM_TOKEN__";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const uid = () => "b" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const icon = n => `<svg class="i"><use href="#${n}"/></svg>`;
+const ic = n => h("span", { html: icon(n), style: "display:inline-grid;place-items:center" });
+
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+}
+function toast(msg, err) {
+  const t = h("div", { class: "toast" + (err ? " err" : "") }, msg);
+  $("#toasts").append(t); setTimeout(() => t.remove(), err ? 7000 : 3500); return t;
+}
+async function api(path, opt = {}) {
+  const r = await fetch(path, { ...opt, headers: { Authorization: "Bearer " + TOKEN, ...(typeof opt.body === "string" ? { "Content-Type": "application/json" } : {}) } });
+  if (!r.ok) {
+    let m = r.statusText; try { m = (await r.json()).error || m; } catch (e) {}
+    throw new Error(m);
+  }
+  return r.status === 204 ? null : r.json();
+}
+function ago(ts) {
+  const s = (Date.now() - ts) / 1000;
+  if (s < 60) return "сейчас"; if (s < 3600) return Math.floor(s / 60) + "м";
+  if (s < 86400) return Math.floor(s / 3600) + "ч"; return Math.floor(s / 86400) + "д";
+}
+const clip = (s, n) => { s = (s || "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+const pg = s => s.page_to > s.page_from ? s.page_from + "–" + s.page_to : "" + s.page_from;
+
+/* ---------------- состояние ---------------- */
+const S = {
+  books: [], ws: { boards: [], active: null }, info: {},
+  tab: "chat", wide: false, rp: true, mode: "ai",
+  msgs: [], busy: false, abort: null, msgsFor: "", toc: [], tocFor: "", sel: null,
+};
+const board = () => S.ws.boards.find(b => b.id === S.ws.active);
+const bookOf = id => S.books.find(b => b.meta.id === id);
+const curBook = () => { const b = board(); return b && b.bookId ? bookOf(b.bookId) : null; };
+
+let saveT;
+function saveWs() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => api("/v1/workspace", { method: "PUT", body: JSON.stringify(S.ws) }).catch(e => toast("Не удалось сохранить доски: " + e.message, true)), 600);
+}
+function newBoard(bookId, title) {
+  const b = { id: uid(), title: title || "Новая доска", bookId: bookId || null, cards: [], links: [], view: { x: 0, y: 0, z: 1 }, created: Date.now(), updated: Date.now() };
+  S.ws.boards.unshift(b); S.ws.active = b.id; saveWs(); return b;
+}
+function touch() { const b = board(); if (b) b.updated = Date.now(); saveWs(); }
+
+/* ---------------- книги ---------------- */
+async function loadBooks() {
+  const metas = (await api("/v1/books")) || [];
+  S.books = metas.map(m => { const o = S.books.find(b => b.meta.id === m.id); return { ready: false, done: 0, total: m.chunks, job: null, ...(o || {}), meta: m }; });
+  await Promise.all(S.books.map(refreshBook));
+}
+async function refreshBook(b) {
+  try {
+    const d = await api("/v1/books/" + b.meta.id);
+    b.ready = d.ready; b.done = d.vectors_done; b.total = d.vectors_total; b.job = d.job || null; b.meta = d.meta;
+  } catch (e) { b.err = e.message; }
+}
+let pollT;
+function poll() {
+  clearTimeout(pollT);
+  const pending = S.books.filter(b => !b.ready && !(b.job && b.job.error));
+  if (!pending.length) return;
+  pollT = setTimeout(async () => { await Promise.all(pending.map(refreshBook)); renderSidebar(); if (S.tab === "book") renderPane(); poll(); }, 1500);
+}
+function upload(file) {
+  if (!file) return;
+  const t = toast("Загружаю «" + file.name + "»…");
+  const fd = new FormData(); fd.append("file", file);
+  const x = new XMLHttpRequest();
+  x.open("POST", "/v1/upload"); x.setRequestHeader("Authorization", "Bearer " + TOKEN);
+  x.upload.onprogress = e => { if (e.lengthComputable) t.textContent = "Загружаю «" + file.name + "»: " + Math.round(e.loaded / e.total * 100) + "%"; };
+  x.upload.onload = () => { t.textContent = "Читаю и разбираю «" + file.name + "» (для больших книг — до минуты)…"; };
+  x.onload = async () => {
+    t.remove();
+    let d = {}; try { d = JSON.parse(x.responseText); } catch (e) {}
+    if (x.status >= 300) return toast(d.error || "Ошибка загрузки", true);
+    await loadBooks();
+    const b = bookOf(d.meta.id);
+    let bd = board();
+    if (!bd || (bd.bookId && bd.bookId !== b.meta.id && bd.cards.length)) bd = newBoard(b.meta.id, clip(b.meta.title, 40));
+    bd.bookId = b.meta.id;
+    if (!bd.cards.some(c => c.type === "book" && c.bookId === b.meta.id)) addCard("book", { bookId: b.meta.id, title: b.meta.title }, false);
+    if (bd.title === "Новая доска" || bd.title === "Моя доска") bd.title = clip(b.meta.title, 40);
+    saveWs(); renderAll();
+    toast("Книга добавлена. Можно сразу спрашивать — смысловой индекс достраивается в фоне.");
+  };
+  x.onerror = () => { t.remove(); toast("Сервер locallm не отвечает", true); };
+  x.send(fd);
+}
+
+/* ---------------- боковая панель ---------------- */
+function renderSidebar() {
+  const L = $("#sbList"); L.textContent = "";
+  L.append(h("div", { class: "sec" }, "Книги", h("button", { title: "Открыть книгу", onclick: () => $("#file").click() }, ic("plus"))));
+  if (!S.books.length) L.append(h("div", { style: "padding:6px 12px;color:var(--tx3);font-size:13px" }, "Пока нет книг. Перетащите файл в окно."));
+  for (const b of S.books) {
+    const pct = b.total ? Math.round(b.done / b.total * 100) : 0;
+    const st = b.job && b.job.error ? "ошибка" : b.ready ? "" : pct + "%";
+    L.append(h("div", { class: "bk" + (board() && board().bookId === b.meta.id ? " act" : ""), title: b.meta.title, draggable: "true",
+      onclick: () => selectBook(b.meta.id), ondragstart: e => e.dataTransfer.setData("text/locallm-book", b.meta.id) },
+      ic("book"), h("span", { class: "t" }, b.meta.title), h("span", { class: "s" }, st),
+      h("button", { class: "x", title: "Удалить книгу", onclick: async e => { e.stopPropagation(); if (confirm("Удалить книгу «" + b.meta.title + "» и её индекс?")) { await api("/v1/books/" + b.meta.id, { method: "DELETE" }); for (const bd of S.ws.boards) if (bd.bookId === b.meta.id) bd.bookId = null; await loadBooks(); saveWs(); renderAll(); } } }, ic("trash"))));
+  }
+  L.append(h("div", { class: "sec" }, "Доски", h("button", { title: "Новая доска (Ctrl+N)", onclick: () => { newBoard(curBook() && curBook().meta.id); renderAll(); } }, ic("plus"))));
+  const groups = new Map();
+  for (const bd of S.ws.boards) { const k = bd.bookId || ""; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(bd); }
+  for (const [k, arr] of groups) {
+    const bk = k ? bookOf(k) : null;
+    L.append(h("div", { class: "grp" }, ic("folder"), h("span", {}, bk ? bk.meta.title : "Без книги")));
+    for (const bd of [...arr].sort((a, b) => b.updated - a.updated)) {
+      L.append(h("div", { class: "item" + (bd.id === S.ws.active ? " act" : ""), onclick: () => { S.ws.active = bd.id; saveWs(); renderAll(); } },
+        bd.id === S.ws.active ? h("span", { class: "dot" }) : null,
+        h("span", { class: "t" }, bd.title), h("span", { class: "m" }, ago(bd.updated)),
+        h("button", { class: "x", title: "Удалить доску", onclick: e => { e.stopPropagation(); if (confirm("Удалить доску «" + bd.title + "»?")) delBoard(bd.id); } }, ic("x"))));
+    }
+  }
+}
+function delBoard(id) {
+  S.ws.boards = S.ws.boards.filter(b => b.id !== id);
+  if (S.ws.active === id) S.ws.active = S.ws.boards[0] ? S.ws.boards[0].id : null;
+  if (!S.ws.boards.length) newBoard(curBook() && curBook().meta.id);
+  saveWs(); renderAll();
+}
+function selectBook(id) {
+  let bd = board();
+  if (!bd) bd = newBoard(id, clip(bookOf(id).meta.title, 40));
+  bd.bookId = id; touch(); renderAll();
+}
+
+/* ---------------- верхняя панель ---------------- */
+function renderTop() {
+  const bd = board(), t = $("#boardTitle");
+  if (document.activeElement !== t) t.textContent = bd ? bd.title : "";
+  const b = curBook();
+  $("#bookPillT").textContent = b ? b.meta.title : "Без книги";
+  $("#app").classList.toggle("rp-open", S.rp && !S.wide);
+  $("#app").classList.toggle("chat-wide", S.wide);
+  $("#bPanel").classList.toggle("on", S.rp && !S.wide); $("#bWide").classList.toggle("on", S.wide);
+  $("#stage").style.display = S.wide ? "none" : "";
+}
+$("#boardTitle").addEventListener("input", e => { const b = board(); if (b) { b.title = e.target.textContent.trim() || "Без названия"; touch(); renderSidebar(); } });
+$("#boardTitle").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
+function popMenu(x, y, items) {
+  const m = h("div", { class: "menu", style: `left:${Math.max(8, Math.min(x, innerWidth - 250))}px;top:${Math.max(8, Math.min(y, innerHeight - 60 - items.length * 48))}px` }, items);
+  document.body.append(m); setTimeout(() => document.addEventListener("click", () => m.remove(), { once: true }), 0); return m;
+}
+$("#bookPill").addEventListener("click", e => {
+  const r = e.currentTarget.getBoundingClientRect(); let m;
+  m = popMenu(r.left, r.bottom + 6, [
+    ...S.books.map(b => h("button", { onclick: () => { m.remove(); selectBook(b.meta.id); } }, ic("book"), h("span", {}, b.meta.title, h("small", {}, b.meta.pages + " стр. · " + b.meta.format)))),
+    h("button", { onclick: () => { m.remove(); $("#file").click(); } }, ic("plus"), h("span", {}, "Открыть книгу…"))]);
+});
+$("#bPanel").onclick = () => { if (S.wide) { S.wide = false; S.rp = true; } else S.rp = !S.rp; renderAll(); };
+$("#bWide").onclick = () => { S.wide = !S.wide; if (S.wide) S.tab = "chat"; renderAll(); };
+$("#bAddNote").onclick = () => { if (S.wide) { S.wide = false; renderAll(); } const c = viewCenter(); addCard("note", { title: "Заметка" }, false, c.x - 130, c.y - 70); focusCard(board().cards[board().cards.length - 1].id); };
+$("#nNew").onclick = () => { newBoard(curBook() && curBook().meta.id); renderAll(); };
+$("#nOpen").onclick = () => $("#file").click();
+$("#nSearch").onclick = () => openSearch();
+$("#file").onchange = e => { for (const f of e.target.files) upload(f); e.target.value = ""; };
+$("#bInfo").onclick = () => toast(`locallm ${S.info.version || ""} · модель: ${S.info.llm || "?"} · эмбеддинги: ${S.info.embed || "?"} · RAM ${Math.round(S.info.ram_gb || 0)} ГБ · потоков ${S.info.threads || "?"} · данные: ${S.info.data_dir || ""}`);
+
+/* ---------------- холст ---------------- */
+const canvas = $("#canvas"), world = $("#world"), cardsEl = $("#cards"), linkg = $("#linkg");
+const ICONS = { note: "note", book: "book", answer: "sparkle", quote: "quote", summary: "list" };
+const DEF = { note: [280, 180], book: [280, 150], answer: [380, 260], quote: [340, 190], summary: [380, 260] };
+const view = () => board().view;
+function applyView() {
+  const v = view();
+  world.style.transform = `translate(${v.x}px,${v.y}px) scale(${v.z})`;
+  canvas.style.backgroundPosition = `${v.x}px ${v.y}px`; canvas.style.backgroundSize = `${24 * v.z}px ${24 * v.z}px`;
+  $("#zv").textContent = Math.round(v.z * 100) + "%";
+}
+function toWorld(cx, cy) { const r = canvas.getBoundingClientRect(), v = view(); return { x: (cx - r.left - v.x) / v.z, y: (cy - r.top - v.y) / v.z }; }
+function viewCenter() { const r = canvas.getBoundingClientRect(); return toWorld(r.left + r.width / 2, r.top + r.height / 2); }
+
+function addCard(type, data, link, x, y) {
+  const b = board(); if (!b) return null;
+  const [w, hh] = DEF[type];
+  if (x == null) { const c = viewCenter(), n = b.cards.length; x = c.x - w / 2 + (n % 5) * 26; y = c.y - hh / 2 + (n % 5) * 26; }
+  const card = { id: uid(), type, x: Math.round(x), y: Math.round(y), w, h: hh, title: "", text: "", ...data };
+  b.cards.push(card);
+  if (link && b.bookId) {
+    let bc = b.cards.find(c => c.type === "book" && c.id !== card.id && c.bookId === b.bookId);
+    if (!bc) { // на доске ещё нет карточки книги — создаём её слева от новой карточки
+      const bk = bookOf(b.bookId);
+      bc = { id: uid(), type: "book", x: card.x - DEF.book[0] - 80, y: card.y, w: DEF.book[0], h: DEF.book[1], title: bk ? bk.meta.title : "Книга", text: "", bookId: b.bookId };
+      b.cards.push(bc);
+    }
+    b.links.push({ id: uid(), from: bc.id, to: card.id });
+  }
+  touch(); renderBoard(); return card;
+}
+function renderBoard() {
+  const b = board(); cardsEl.textContent = ""; linkg.textContent = "";
+  if (!b) return;
+  for (const c of b.cards) cardsEl.append(cardEl(c));
+  $("#hint").style.display = b.cards.length ? "none" : "";
+  applyView(); drawLinks();
+}
+function cardEl(c) {
+  const bk = c.type === "book" ? bookOf(c.bookId) : null;
+  const hd = h("div", { class: "hd" },
+    h("span", { class: "ic", html: icon(ICONS[c.type]) }),
+    h("input", { value: c.title || "", placeholder: "Без названия", oninput: e => { c.title = e.target.value; touch(); }, onpointerdown: e => e.stopPropagation() }),
+    h("button", { class: "x", title: "Удалить карточку", onpointerdown: e => e.stopPropagation(), onclick: () => delCard(c.id) }, ic("x")));
+  const bd = h("div", { class: "bd" });
+  if (c.type === "book") {
+    const m = bk ? bk.meta : { pages: "?", format: "?", sections: "?" };
+    bd.append(h("div", { style: "color:var(--tx2);line-height:1.6" }, `${m.author ? m.author + " · " : ""}${m.pages} стр. · ${m.sections} разделов · ${m.format}`),
+      h("div", { style: "margin-top:8px" }, h("button", { class: "btn2 pri", onpointerdown: e => e.stopPropagation(), onclick: () => { selectBook(c.bookId); S.tab = "chat"; S.rp = true; S.wide = false; renderAll(); } }, ic("chat"), "Спросить об этой книге")));
+  } else {
+    const ta = h("textarea", { placeholder: "Текст заметки…", oninput: e => { c.text = e.target.value; touch(); }, onpointerdown: e => e.stopPropagation() }); ta.value = c.text || ""; bd.append(ta);
+  }
+  const el = h("div", { class: "card " + c.type + (S.sel && S.sel.id === c.id ? " sel" : ""), "data-id": c.id, style: `left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px` }, hd, bd);
+  if (c.sources && c.sources.length) el.append(h("div", { class: "meta" }, c.sources.slice(0, 6).map(s => h("span", { class: "chip", title: s.snippet || "" }, "стр. " + pg(s)))));
+  for (const s of ["t", "b", "l", "r"]) el.append(h("div", { class: "hdl " + s, "data-side": s, onpointerdown: e => startLink(e, c) }));
+  el.append(h("div", { class: "rs", onpointerdown: e => startResize(e, c, el) }));
+  hd.addEventListener("pointerdown", e => startDrag(e, c, el));
+  el.addEventListener("pointerdown", () => select("card", c.id));
+  return el;
+}
+function select(type, id) {
+  S.sel = id ? { type, id } : null;
+  $$(".card").forEach(e => e.classList.toggle("sel", !!S.sel && S.sel.type === "card" && e.dataset.id === S.sel.id));
+  $$("#linkg path.vis").forEach(p => p.classList.toggle("sel", !!S.sel && S.sel.type === "link" && p.dataset.id === S.sel.id));
+}
+function delCard(id) {
+  const b = board(); b.cards = b.cards.filter(c => c.id !== id); b.links = b.links.filter(l => l.from !== id && l.to !== id);
+  S.sel = null; touch(); renderBoard();
+}
+function focusCard(id) { const t = $(`.card[data-id="${id}"] input`); if (t) { t.focus(); t.select(); } }
+function dragger(e, onmove, onend) {
+  const mv = ev => onmove(ev), up = () => { removeEventListener("pointermove", mv); removeEventListener("pointerup", up); onend && onend(); };
+  addEventListener("pointermove", mv); addEventListener("pointerup", up);
+}
+function startDrag(e, c, el) {
+  if (e.button !== 0) return; e.stopPropagation(); select("card", c.id);
+  const v = view(), sx = e.clientX, sy = e.clientY, ox = c.x, oy = c.y; let moved = false;
+  dragger(e, ev => { moved = true; c.x = Math.round(ox + (ev.clientX - sx) / v.z); c.y = Math.round(oy + (ev.clientY - sy) / v.z); el.style.left = c.x + "px"; el.style.top = c.y + "px"; drawLinks(); }, () => { if (moved) touch(); });
+}
+function startResize(e, c, el) {
+  e.stopPropagation(); e.preventDefault(); const v = view(), sx = e.clientX, sy = e.clientY, ow = c.w, oh = c.h;
+  dragger(e, ev => { c.w = Math.max(180, Math.round(ow + (ev.clientX - sx) / v.z)); c.h = Math.max(90, Math.round(oh + (ev.clientY - sy) / v.z)); el.style.width = c.w + "px"; el.style.height = c.h + "px"; drawLinks(); }, touch);
+}
+function startLink(e, from) {
+  e.stopPropagation(); e.preventDefault(); canvas.classList.add("linking");
+  const ns = "http://www.w3.org/2000/svg", tmp = document.createElementNS(ns, "path");
+  tmp.setAttribute("style", "stroke:#2a8fd0;stroke-dasharray:6 4;fill:none;stroke-width:2"); linkg.append(tmp);
+  const a = anchorPoint(from, e.target.dataset.side);
+  dragger(e, ev => { const p = toWorld(ev.clientX, ev.clientY); tmp.setAttribute("d", `M${a.x},${a.y} L${p.x},${p.y}`); }, null);
+  const up = ev => {
+    removeEventListener("pointerup", up); tmp.remove(); canvas.classList.remove("linking");
+    const el = document.elementFromPoint(ev.clientX, ev.clientY), t = el && el.closest(".card");
+    if (t && t.dataset.id !== from.id) {
+      const b = board();
+      if (!b.links.some(l => (l.from === from.id && l.to === t.dataset.id) || (l.from === t.dataset.id && l.to === from.id))) { b.links.push({ id: uid(), from: from.id, to: t.dataset.id }); touch(); drawLinks(); }
+    }
+  };
+  addEventListener("pointerup", up);
+}
+function anchorPoint(c, side) {
+  return { t: { x: c.x + c.w / 2, y: c.y }, b: { x: c.x + c.w / 2, y: c.y + c.h }, l: { x: c.x, y: c.y + c.h / 2 }, r: { x: c.x + c.w, y: c.y + c.h / 2 } }[side];
+}
+function drawLinks() {
+  const b = board(); if (!b) return; linkg.textContent = "";
+  const ns = "http://www.w3.org/2000/svg", byId = new Map(b.cards.map(c => [c.id, c]));
+  for (const l of b.links) {
+    const A = byId.get(l.from), B = byId.get(l.to); if (!A || !B) continue;
+    let sa, sb;
+    if (B.x > A.x + A.w) { sa = "r"; sb = "l"; } else if (B.x + B.w < A.x) { sa = "l"; sb = "r"; } else if (B.y > A.y) { sa = "b"; sb = "t"; } else { sa = "t"; sb = "b"; }
+    const p = anchorPoint(A, sa), q = anchorPoint(B, sb), k = 70;
+    const dx = { r: k, l: -k, t: 0, b: 0 }, dy = { r: 0, l: 0, t: -k, b: k };
+    const d = `M${p.x},${p.y} C${p.x + dx[sa]},${p.y + dy[sa]} ${q.x + dx[sb]},${q.y + dy[sb]} ${q.x},${q.y}`;
+    const vis = document.createElementNS(ns, "path"); vis.setAttribute("d", d); vis.setAttribute("marker-end", "url(#arr)"); vis.setAttribute("class", "vis" + (S.sel && S.sel.id === l.id ? " sel" : "")); vis.dataset.id = l.id;
+    const hit = document.createElementNS(ns, "path"); hit.setAttribute("d", d); hit.setAttribute("class", "hit");
+    hit.addEventListener("pointerdown", e => { e.stopPropagation(); select("link", l.id); });
+    linkg.append(vis, hit);
+  }
+}
+const isBg = t => t === canvas || t === world || t.id === "cards";
+canvas.addEventListener("pointerdown", e => {
+  if (!isBg(e.target)) return;
+  select(null); if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  const v = view(), sx = e.clientX, sy = e.clientY, ox = v.x, oy = v.y; canvas.classList.add("pan");
+  dragger(e, ev => { v.x = ox + ev.clientX - sx; v.y = oy + ev.clientY - sy; applyView(); }, () => { canvas.classList.remove("pan"); saveWs(); });
+});
+canvas.addEventListener("wheel", e => {
+  e.preventDefault(); const v = view();
+  if (e.ctrlKey || e.metaKey) zoomAt(e.clientX, e.clientY, v.z * Math.exp(-e.deltaY * 0.01));
+  else { v.x -= e.deltaX; v.y -= e.deltaY; applyView(); saveWs(); }
+}, { passive: false });
+function zoomAt(cx, cy, nz) {
+  const v = view(), r = canvas.getBoundingClientRect(); nz = Math.min(2.5, Math.max(0.15, nz));
+  const wx = (cx - r.left - v.x) / v.z, wy = (cy - r.top - v.y) / v.z;
+  v.z = nz; v.x = cx - r.left - wx * nz; v.y = cy - r.top - wy * nz; applyView(); saveWs();
+}
+const mid = () => { const r = canvas.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+$("#zIn").onclick = () => zoomAt(...mid(), view().z * 1.2);
+$("#zOut").onclick = () => zoomAt(...mid(), view().z / 1.2);
+$("#zFit").onclick = () => {
+  const b = board(), v = view(); if (!b.cards.length) { v.x = v.y = 0; v.z = 1; return applyView(); }
+  const x0 = Math.min(...b.cards.map(c => c.x)), y0 = Math.min(...b.cards.map(c => c.y)), x1 = Math.max(...b.cards.map(c => c.x + c.w)), y1 = Math.max(...b.cards.map(c => c.y + c.h));
+  const r = canvas.getBoundingClientRect(), z = Math.min(1.2, Math.max(0.15, Math.min((r.width - 80) / (x1 - x0), (r.height - 80) / (y1 - y0))));
+  v.z = z; v.x = (r.width - (x1 - x0) * z) / 2 - x0 * z; v.y = (r.height - (y1 - y0) * z) / 2 - y0 * z; applyView(); saveWs();
+};
+canvas.addEventListener("dblclick", e => {
+  if (!isBg(e.target)) return;
+  const p = toWorld(e.clientX, e.clientY); addCard("note", { title: "Заметка" }, false, p.x - 140, p.y - 20); focusCard(board().cards[board().cards.length - 1].id);
+});
+canvas.addEventListener("dragover", e => e.preventDefault());
+canvas.addEventListener("drop", e => {
+  const id = e.dataTransfer.getData("text/locallm-book");
+  if (id) { e.preventDefault(); e.stopPropagation(); const p = toWorld(e.clientX, e.clientY), b = bookOf(id); board().bookId = id; addCard("book", { bookId: id, title: b.meta.title }, false, p.x - 140, p.y - 40); renderAll(); }
+});
+addEventListener("keydown", e => {
+  const a = document.activeElement, inField = a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) || a.isContentEditable), mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); openSearch(); }
+  else if (mod && e.key.toLowerCase() === "n") { e.preventDefault(); newBoard(curBook() && curBook().meta.id); renderAll(); }
+  else if (e.key === "Escape") { closeSearch(); select(null); }
+  else if ((e.key === "Delete" || e.key === "Backspace") && !inField && S.sel) {
+    if (S.sel.type === "card") delCard(S.sel.id); else { const b = board(); b.links = b.links.filter(l => l.id !== S.sel.id); S.sel = null; touch(); drawLinks(); }
+  }
+});
+let dragN = 0;
+addEventListener("dragenter", e => { if ([...((e.dataTransfer && e.dataTransfer.types) || [])].includes("Files")) { dragN++; $("#drop").classList.add("on"); } });
+addEventListener("dragleave", () => { if (--dragN <= 0) { dragN = 0; $("#drop").classList.remove("on"); } });
+addEventListener("dragover", e => e.preventDefault());
+addEventListener("drop", e => { e.preventDefault(); dragN = 0; $("#drop").classList.remove("on"); for (const f of (e.dataTransfer.files || [])) upload(f); });
+
+/* ---------------- правая панель / широкий чат ---------------- */
+$$(".tab").forEach(t => t.onclick = () => { S.tab = t.dataset.tab; renderPane(); });
+function paneHost() { return S.wide ? $("#chatwide") : $("#pane"); }
+function renderPane() {
+  $$(".tab").forEach(t => t.classList.toggle("act", t.dataset.tab === S.tab));
+  $("#pane").textContent = ""; $("#chatwide").textContent = "";
+  const p = paneHost();
+  if (S.wide || S.tab === "chat") renderChat(p); else if (S.tab === "toc") renderToc(p); else renderBookTab(p);
+}
+async function loadChat() {
+  const b = board(), bk = curBook(); if (!b || !bk) { S.msgs = []; S.msgsFor = ""; return; }
+  const key = bk.meta.id + "/" + b.id; if (S.msgsFor === key) return; S.msgsFor = key; S.msgs = [];
+  try { const c = await api(`/v1/books/${bk.meta.id}/chats/${b.id}`); if (S.msgsFor === key) S.msgs = (c.messages || []).map(m => ({ role: m.role, text: m.content, sources: m.sources || [] })); } catch (e) {}
+  if (S.tab === "chat" || S.wide) renderPane();
+}
+function renderChat(p) {
+  const bk = curBook();
+  const list = h("div", { class: "msgs", id: "msgs" });
+  if (!bk) list.append(h("div", { class: "empty" }, h("h3", {}, "Выберите книгу"), "Откройте файл (кнопка слева или перетаскиванием) — и можно задавать вопросы. Всё работает на вашем компьютере."));
+  else if (!S.msgs.length) list.append(h("div", { class: "empty" }, h("h3", {}, "Спросите о «" + clip(bk.meta.title, 40) + "»"), "Ответ строится только по тексту книги, со ссылками на страницы.",
+    h("div", { class: "sugg" }, ["О чём эта книга?", "Кратко перескажи главу 1", "Какие главные выводы автора?"].map(q => h("button", { onclick: () => send(q) }, q)))));
+  S.msgs.forEach((m, i) => list.append(msgEl(m, i)));
+  p.append(list);
+  const ta = h("textarea", { id: "ta", rows: "1", placeholder: bk ? "Задайте вопрос по книге…" : "Сначала выберите книгу", disabled: !bk,
+    oninput: e => { e.target.style.height = "auto"; e.target.style.height = Math.min(160, e.target.scrollHeight) + "px"; },
+    onkeydown: e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); } } });
+  const sendBtn = h("button", { class: "send" + (S.busy ? " stop" : ""), title: S.busy ? "Остановить" : "Отправить", onclick: () => S.busy ? (S.abort && S.abort.abort()) : doSend() }, ic(S.busy ? "stop" : "send"));
+  const modeBtn = h("button", { class: "btn", onclick: e => modeMenu(e) }, ic(S.mode === "ai" ? "sparkle" : "zap"), S.mode === "ai" ? "Ответ ИИ" : "Только поиск", h("span", { style: "opacity:.6" }, "▾"));
+  p.append(h("div", { class: "composer" }, ta, h("div", { class: "crow" },
+    h("button", { class: "btn", title: "Открыть книгу", onclick: () => $("#file").click() }, ic("plus")), modeBtn, h("div", { class: "sp" }),
+    h("span", { style: "color:var(--tx3);font-size:12.5px" }, S.info.llm ? S.info.llm.replace(/\.gguf$/i, "").replace(/-q\d.*$/i, "") : ""), sendBtn)));
+  list.scrollTop = list.scrollHeight;
+}
+function modeMenu(e) {
+  const r = e.currentTarget.getBoundingClientRect(); let m;
+  m = popMenu(r.left, r.top - 110, [
+    h("button", { onclick: () => { S.mode = "ai"; m.remove(); renderPane(); } }, ic("sparkle"), h("span", {}, "Ответ ИИ", h("small", {}, "Модель читает найденные фрагменты и отвечает"))),
+    h("button", { onclick: () => { S.mode = "search"; m.remove(); renderPane(); } }, ic("zap"), h("span", {}, "Только поиск", h("small", {}, "Мгновенно показать подходящие места в книге")))]);
+}
+function refSup(text) {
+  const frag = document.createDocumentFragment();
+  text.split(/(\[\d+\])/).forEach(part => { frag.append(/^\[\d+\]$/.test(part) ? h("sup", {}, part) : document.createTextNode(part)); });
+  return frag;
+}
+function msgEl(m, i) {
+  if (m.role === "user") return h("div", { class: "msg u" }, h("div", { class: "bub" }, m.text));
+  const bub = h("div", { class: "bub" });
+  if (m.pending && !m.text) bub.append(h("div", { class: "typing" }, h("i"), h("i"), h("i"), " " + (m.note || "Думаю…"))); else bub.append(refSup(m.text || ""));
+  const el = h("div", { class: "msg a" }, bub);
+  if (m.sources && m.sources.length) el.append(h("div", { class: "src" }, m.sources.map((s, k) => h("span", { class: "chip src", title: (s.snippet || "") + "\n" + (s.section || ""),
+    onclick: () => { if (S.wide) { S.wide = false; renderAll(); } addCard("quote", { title: "Стр. " + pg(s) + " · " + clip((s.section || "").split(" › ").pop(), 28), text: s.snippet || "", sources: [s] }, true); toast("Фрагмент добавлен на доску"); } }, `[${k + 1}] стр. ${pg(s)}`))));
+  if (!m.pending && m.text) el.append(h("div", { class: "acts" },
+    h("button", { title: "Положить ответ на доску", onclick: () => answerToBoard(i) }, ic("pin"), "На доску"),
+    h("button", { onclick: () => navigator.clipboard.writeText(m.text).then(() => toast("Скопировано")) }, ic("copy"), "Копировать")));
+  return el;
+}
+function answerToBoard(i) {
+  const m = S.msgs[i], q = S.msgs[i - 1];
+  if (S.wide) { S.wide = false; S.rp = true; renderAll(); }
+  addCard("answer", { title: clip(q ? q.text : "Ответ", 40), text: m.text, sources: m.sources }, true);
+  toast("Ответ добавлен на доску");
+}
+function doSend() { const ta = $("#ta"); if (!ta || !ta.value.trim()) return; const q = ta.value.trim(); ta.value = ""; send(q); }
+async function send(q) {
+  const bk = curBook(), bd = board(); if (!bk || S.busy) return;
+  S.msgsFor = bk.meta.id + "/" + bd.id;
+  S.msgs.push({ role: "user", text: q });
+  if (S.mode === "search") {
+    const m = { role: "assistant", text: "", pending: true, note: "Ищу…" }; S.msgs.push(m); renderPane();
+    try {
+      const ps = await api(`/v1/books/${bk.meta.id}/search`, { method: "POST", body: JSON.stringify({ query: q, k: 6 }) });
+      m.pending = false; m.sources = (ps || []).map(p => ({ section: p.Section, page_from: p.PageFrom, page_to: p.PageTo, snippet: p.Text }));
+      m.text = ps && ps.length ? "Нашёл " + ps.length + " подходящих мест. Нажмите на ссылку, чтобы положить фрагмент на доску:\n\n" + ps.map((p, k) => `[${k + 1}] стр. ${p.PageFrom}${p.PageTo > p.PageFrom ? "–" + p.PageTo : ""} — ${clip(p.Section, 50)}\n${clip(p.Text, 220)}`).join("\n\n") : "В книге ничего не найдено по этому запросу.";
+    } catch (e) { m.pending = false; m.text = "Ошибка: " + e.message; }
+    return renderPane();
+  }
+  const m = { role: "assistant", text: "", pending: true, note: S.asked ? "Думаю…" : "Загружаю модель и читаю фрагменты (первый ответ дольше)…" };
+  S.msgs.push(m); S.busy = true; S.abort = new AbortController(); renderPane();
+  try {
+    const r = await fetch(`/v1/books/${bk.meta.id}/ask`, { method: "POST", signal: S.abort.signal, headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" }, body: JSON.stringify({ question: q, chat_id: bd.id, stream: true }) });
+    if (!r.ok) throw new Error(((await r.json().catch(() => ({}))).error) || r.statusText);
+    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "";
+    for (;;) {
+      const { value, done } = await rd.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let k; while ((k = buf.indexOf("\n\n")) >= 0) {
+        const blk = buf.slice(0, k); buf = buf.slice(k + 2);
+        const ev = (/event: (\w+)/.exec(blk) || [])[1], data = (/data: (.*)/.exec(blk) || [])[1]; if (!ev || !data) continue;
+        const d = JSON.parse(data);
+        if (ev === "token") { m.text += d.t; live(m); }
+        else if (ev === "done") { m.text = d.Text; m.sources = d.Sources || []; }
+        else if (ev === "error") throw new Error(d.error);
+      }
+    }
+    S.asked = true;
+  } catch (e) { if (e.name === "AbortError") m.text = m.text || "(остановлено)"; else m.text = (m.text ? m.text + "\n\n" : "") + "Ошибка: " + e.message; }
+  m.pending = false; S.busy = false; S.abort = null; renderPane();
+}
+function live(m) {
+  const list = $("#msgs"); if (!list) return; const last = list.lastElementChild; if (!last) return;
+  const b = $(".bub", last); if (b) { b.textContent = ""; b.append(refSup(m.text)); } list.scrollTop = list.scrollHeight;
+}
+async function renderToc(p) {
+  const bk = curBook(); const sc = h("div", { class: "scroll toc" }); p.append(sc);
+  if (!bk) return sc.append(h("div", { class: "empty" }, "Выберите книгу"));
+  sc.append(h("div", { style: "display:flex;gap:8px;margin-bottom:10px" }, h("button", { class: "btn2", onclick: () => summarize(-1, "Обзор книги") }, ic("sparkle"), "Обзор всей книги")));
+  if (S.tocFor !== bk.meta.id) {
+    sc.append(h("div", { class: "typing" }, "Загружаю…"));
+    try { S.toc = await api(`/v1/books/${bk.meta.id}/toc`); S.tocFor = bk.meta.id; } catch (e) { return sc.append(h("div", {}, e.message)); }
+    if (S.tab !== "toc") return; return renderPane();
+  }
+  for (const s of S.toc) sc.append(h("div", { class: "e", style: `padding-left:${6 + (s.level - 1) * 16}px` }, h("span", { class: "tt", title: s.title }, s.title), h("span", { class: "pg" }, s.page_from === s.page_to ? "с." + s.page_from : s.page_from + "–" + s.page_to),
+    h("button", { title: "Положить раздел на доску", onclick: () => addCard("quote", { title: s.title, text: "Стр. " + s.page_from + "–" + s.page_to + "\n" + s.path }, true) }, "+"),
+    h("button", { onclick: () => summarize(s.id, s.title) }, "Кратко")));
+}
+async function summarize(id, title) {
+  const bk = curBook(); const t = toast("Готовлю краткое содержание: «" + clip(title, 40) + "»… (на слабом процессоре — до минуты)");
+  try {
+    const r = await api(`/v1/books/${bk.meta.id}/summary`, { method: "POST", body: JSON.stringify({ section: id }) });
+    addCard("summary", { title: "Кратко: " + clip(title, 36), text: r.summary }, true); t.remove(); toast("Готово — карточка на доске");
+  } catch (e) { t.remove(); toast("Не получилось: " + e.message, true); }
+}
+function renderBookTab(p) {
+  const bk = curBook(); const sc = h("div", { class: "scroll" }); p.append(sc);
+  if (!bk) return sc.append(h("div", { class: "empty" }, "Выберите книгу"));
+  const m = bk.meta, pct = bk.total ? Math.round(bk.done / bk.total * 100) : 0, err = bk.job && bk.job.error;
+  const row = (k, v) => h("div", { class: "row" }, h("span", { class: "k" }, k), h("span", { class: "v", title: "" + v }, "" + v));
+  sc.append(h("div", { class: "box" }, h("h4", {}, "Книга"), row("Название", m.title), m.author ? row("Автор", m.author) : null, row("Формат", m.format), row("Страниц", m.pages), row("Разделов", m.sections), row("Фрагментов", m.chunks)));
+  sc.append(h("div", { class: "box" }, h("h4", {}, "Индекс"), h("div", { style: "display:flex;justify-content:space-between;margin-bottom:6px" }, h("span", {}, bk.ready ? "Готов" : err ? "Ошибка" : "Строится…"), h("span", { style: "color:var(--tx3)" }, bk.done + " / " + bk.total)), h("div", { class: "bar" }, h("i", { style: `width:${pct}%` })),
+    err ? h("div", { style: "margin-top:8px;color:var(--red)" }, err) : null));
+  const step = (t, st) => h("div", { class: "step " + st }, h("div", { class: "c", html: st === "ok" ? icon("check") : "" }), h("div", { class: "tt" }, t));
+  sc.append(h("div", { class: "box" }, h("h4", {}, "Прогресс"),
+    step("Чтение документа", "ok"), step("Дерево глав: " + m.sections + " разделов", "ok"), step("Поиск по словам готов — можно спрашивать", "ok"),
+    step("Смысловой (векторный) индекс " + pct + "%", bk.ready ? "ok" : err ? "" : "run")));
+  sc.append(h("div", { class: "box" }, h("h4", {}, "Данные"), row("Модель", S.info.llm || "—"), row("Эмбеддинги", S.info.embed || "—"), row("Сеть", "не используется")));
+}
+/* ---------------- поиск ---------------- */
+let sT;
+function openSearch() { if (!curBook()) return toast("Сначала выберите книгу"); $("#ovSearch").classList.add("on"); $("#qs").value = ""; $("#qr").textContent = ""; $("#qs").focus(); }
+function closeSearch() { $("#ovSearch").classList.remove("on"); }
+$("#ovSearch").addEventListener("pointerdown", e => { if (e.target.id === "ovSearch") closeSearch(); });
+$("#qs").addEventListener("input", e => {
+  clearTimeout(sT); const q = e.target.value.trim(); if (q.length < 2) { $("#qr").textContent = ""; return; }
+  sT = setTimeout(async () => {
+    try {
+      const ps = await api(`/v1/books/${curBook().meta.id}/search`, { method: "POST", body: JSON.stringify({ query: q, k: 10 }) });
+      const R = $("#qr"); R.textContent = ""; if (!ps || !ps.length) return R.append(h("div", { style: "padding:14px;color:var(--tx3)" }, "Ничего не найдено"));
+      for (const p of ps) R.append(h("div", { class: "r", onclick: () => { closeSearch(); if (S.wide) { S.wide = false; renderAll(); } addCard("quote", { title: "Стр. " + p.PageFrom + " · " + clip(p.Section.split(" › ").pop(), 28), text: p.Text, sources: [{ page_from: p.PageFrom, page_to: p.PageTo, section: p.Section, snippet: clip(p.Text, 200) }] }, true); toast("Фрагмент добавлен на доску"); } },
+        h("div", { class: "h" }, "стр. " + p.PageFrom + (p.PageTo > p.PageFrom ? "–" + p.PageTo : "") + " · " + p.Section), h("div", { class: "tx" }, p.Text)));
+    } catch (e) { toast(e.message, true); }
+  }, 250);
+});
+
+/* ---------------- запуск ---------------- */
+function renderAll() { renderTop(); renderSidebar(); renderBoard(); loadChat(); renderPane(); poll(); }
+async function init() {
+  try {
+    const [info, ws] = await Promise.all([api("/v1/info").catch(() => ({})), api("/v1/workspace").catch(() => ({}))]);
+    S.info = info || {}; S.ws = { boards: (ws && ws.boards) || [], active: (ws && ws.active) || null };
+    await loadBooks();
+  } catch (e) { toast("Нет связи с локальным сервером: " + e.message, true); }
+  if (!S.ws.boards.length) newBoard(S.books[0] && S.books[0].meta.id, S.books[0] ? clip(S.books[0].meta.title, 40) : "Моя доска");
+  if (!board()) S.ws.active = S.ws.boards[0].id;
+  for (const b of S.ws.boards) { b.cards = b.cards || []; b.links = b.links || []; b.view = b.view || { x: 0, y: 0, z: 1 }; if (b.bookId && !bookOf(b.bookId)) b.bookId = null; }
+  if (!curBook() && S.books[0]) board().bookId = S.books[0].meta.id;
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
